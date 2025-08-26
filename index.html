@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, user-scalable=no"
+  />
+  <title>HeartLink — Romantic Realtime Dating</title>
+  <style>
+    :root{
+      --rose:#ff6b81;
+      --rose-2:#ff8fab;
+      --rose-3:#ffd6e0;
+      --blush:#ffe9f0;
+      --deep:#b8325a;
+      --accent:#ff4d6d;
+      --mint:#2ecc71;
+      --ink:#2b2b2b;
+      --muted:#777;
+      --bg-grad: linear-gradient(160deg, #ffe0ea 0%, #ffd6e0 40%, #fff5f8 100%);
+      --card-grad: linear-gradient(180deg, #fff 0%, #fff4f8 100%);
+      --shadow: 0 10px 30px rgba(255, 77, 109, .18);
+      --soft: 18px;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+      Roboto, "Helvetica Neue", Arial; background: var(--bg-grad); color:var(--ink);
+    }
+    .app{
+      max-width: 480px; margin: 0 auto; min-height: 100dvh; display:flex; flex-direction:column;
+    }
+    header.appbar{
+      position: sticky; top:0; z-index:5; background:transparent; padding:16px 16px 8px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px;
+    }
+    .logo{
+      width:40px; height:40px; border-radius:50%; background: radial-gradient(#ff8fab, #ff4d6d);
+      box-shadow: var(--shadow); display:grid; place-items:center; color:#fff; font-size:20px;
+    }
+    .brand h1{ margin:0; font-size:20px; font-weight:800; letter-spacing:.2px; }
+    .card{
+      background: var(--card-grad); border-radius: 22px; box-shadow: var(--shadow);
+      padding:14px; backdrop-filter: blur(6px);
+    }
+    /* Auth */
+    .auth{ padding:16px; gap:14px; display:flex; flex-direction:column; }
+    .tabs{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .tab{ padding:10px; border-radius: 999px; text-align:center; cursor:pointer; background:#fff; }
+    .tab.active{ background: var(--rose); color:#fff; }
+    .field{ display:flex; flex-direction:column; gap:6px; margin-top:8px;}
+    .field input{
+      padding:14px 14px; border: 2px solid #ffd1dc; border-radius: 14px;
+      outline:none; font-size:15px; background:#fff;
+    }
+    .btn{
+      appearance:none; border:none; border-radius: 16px; padding:14px 16px; font-weight:700;
+      background: linear-gradient(90deg, var(--rose), var(--accent)); color:#fff; cursor:pointer;
+      box-shadow: var(--shadow); transition: transform .08s ease; width:100%;
+    }
+    .btn:active{ transform: translateY(1px) scale(.99); }
+    .link{ color:var(--accent); text-decoration:none; font-weight:600; }
+
+    /* Main content */
+    .content{ flex:1; display:flex; flex-direction:column; gap:12px; padding: 8px 16px 90px; }
+    .section{ display:none; gap:12px; }
+    .section.active{ display:flex; flex-direction:column; }
+
+    /* Online users stack (vertical icons) */
+    .online-stack{ display:flex; flex-direction:column; gap:10px; max-height: 260px; overflow:auto; }
+    .avatar{
+      width:54px; height:54px; border-radius:18px; display:grid; place-items:center; font-size:26px; position:relative;
+      background:#fff; box-shadow: var(--shadow); cursor:pointer;
+    }
+    .green-dot{
+      position:absolute; right:-2px; bottom:-2px; width:14px; height:14px; border-radius:50%;
+      background: var(--mint); border: 2px solid #fff;
+    }
+    .online-row{ display:flex; align-items:center; gap:12px; }
+    .plus{ width:46px; height:46px; border-radius:14px; display:grid; place-items:center; font-size:22px; background:#fff; box-shadow: var(--shadow); cursor:pointer; }
+
+    /* Search */
+    .search{ display:flex; gap:8px; }
+    .search input{
+      flex:1; padding:12px 14px; border:2px solid #ffd1dc; border-radius: 14px; outline:none; background:#fff;
+    }
+    .chip{
+      background:#fff; border-radius:999px; padding:8px 12px; font-size:12px; color:var(--muted);
+    }
+
+    /* Lists */
+    .list{ display:flex; flex-direction:column; gap:10px; }
+    .item{
+      display:flex; align-items:center; gap:12px; padding:12px; background:#fff; border-radius:16px; box-shadow: var(--shadow);
+    }
+    .item-title{ font-weight:800; }
+    .muted{ color:var(--muted); font-size:13px; }
+
+    /* Chat */
+    .chat{
+      position:fixed; inset:0; background:rgba(0,0,0,.1); display:none; align-items:flex-end; justify-content:center; z-index:30;
+    }
+    .chat.active{ display:flex; }
+    .chat-card{
+      width:100%; max-width:480px; background:var(--card-grad); border-top-left-radius:20px; border-top-right-radius:20px; box-shadow: var(--shadow);
+      display:flex; flex-direction:column; max-height: 86dvh;
+    }
+    .chat-head{
+      display:flex; align-items:center; gap:10px; padding:12px; position:sticky; top:0; background:transparent;
+    }
+    .chat-body{ padding:12px; overflow:auto; display:flex; flex-direction:column; gap:8px; }
+    .bubble{
+      max-width:78%; padding:10px 12px; border-radius:16px; background:#fff; box-shadow: var(--shadow); align-self:flex-start;
+    }
+    .bubble.me{
+      background: linear-gradient(90deg, #ff8fab, #ff6b81); color:#fff; align-self:flex-end;
+    }
+    .chat-input{
+      display:flex; gap:8px; padding:12px; position:sticky; bottom:0; background:transparent;
+    }
+    .chat-input input{
+      flex:1; border:2px solid #ffd1dc; border-radius:14px; padding:12px; outline:none; background:#fff;
+    }
+
+    /* Bottom nav */
+    nav.bottom{
+      position:fixed; z-index:10; left:50%; transform: translateX(-50%); bottom: 14px; width: calc(100% - 28px);
+      max-width: 480px; background:#fff; border-radius: 20px; box-shadow: var(--shadow); padding:8px;
+      display:grid; grid-template-columns: repeat(4, 1fr); gap:8px;
+    }
+    .nav-btn{
+      border:none; background:transparent; padding:8px; border-radius:14px; display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer;
+    }
+    .nav-btn.active{ background: #ffe9f0; }
+    .nav-btn span{ font-size: 11px; color: var(--muted); font-weight:700; }
+    .nav-ico{ font-size: 18px; }
+
+    /* Modal - all online users */
+    .modal{
+      position:fixed; inset:0; background:rgba(0,0,0,.25); display:none; align-items:center; justify-content:center; z-index:40;
+    }
+    .modal.active{ display:flex; }
+    .modal-card{ width:100%; max-width:480px; background:#fff; border-radius: 20px; box-shadow: var(--shadow); padding:12px; max-height: 80dvh; overflow:auto; }
+
+    /* Profile editor */
+    .emoji-grid{
+      display:grid; grid-template-columns: repeat(8, 1fr); gap:8px; max-height: 160px; overflow:auto; padding:6px;
+    }
+    .emoji-btn{
+      background:#fff; border:2px solid #ffd1dc; border-radius:12px; padding:8px; text-align:center; cursor:pointer; font-size:20px;
+    }
+    .emoji-btn.active{ border-color: var(--accent); box-shadow: 0 0 0 3px #ffe3ea inset; }
+
+    /* Helpers */
+    .row{ display:flex; align-items:center; gap:10px; }
+    .space{ flex:1; }
+    .danger{ background: linear-gradient(90deg, #ff7676, #ff4d6d); }
+    .ghost{ background:#fff; color:var(--accent); border:2px solid #ffd1dc; }
+    .center{ text-align:center; }
+    .note{ font-size:12px; color:var(--muted); }
+    .hidden{ display:none; }
+
+    @media (min-width: 481px){
+      header.appbar{ padding-top: 22px; }
+      .content{ padding-bottom: 110px; }
+    }
+  </style>
+</head>
+<body>
+    
+  <div class="app" id="app">
+
+    <!-- Top AppBar -->
+    <header class="appbar">
+      <div class="brand">
+        <div class="logo">💗</div>
+        <div>
+          <h1>HeartLink</h1>
+          <div class="note">Romantic realtime dating developed by prakash oli. •</div>
+        </div>
+        <div class="space"></div>
+        <button id="signOutBtn" class="btn ghost" style="padding:8px 12px; border-radius:12px; display:none;">Log out</button>
+      </div>
+    </header>
+
+    <!-- AUTH CARD -->
+    <section id="authSection" class="auth">
+      <div class="card">
+        <div class="tabs">
+          <button class="tab active" id="tabLogin">Login</button>
+          <button class="tab" id="tabSignup">Sign Up</button>
+        </div>
+        <div id="loginForm">
+          <div class="field"><label>Email</label><input id="loginEmail" type="email" placeholder="you@gmail.com" /></div>
+          <div class="field"><label>Password</label><input id="loginPass" type="password" placeholder="Your password" /></div>
+          <div class="field"><button id="loginBtn" class="btn">Login</button></div>
+        </div>
+        <div id="signupForm" class="hidden">
+          <div class="field"><label>Email</label><input id="signEmail" type="email" placeholder="you@gmail.com" /></div>
+          <div class="field"><label>Password</label><input id="signPass" type="password" placeholder="Create a password" /></div>
+          <div class="field"><button id="signupBtn" class="btn">Create Account</button></div>
+        </div>
+        <div id="authError" class="note" style="margin-top:8px;color:#c0392b;"></div>
+      </div>
+      <div class="center note">By continuing, you agree to our sweet terms 💞</div>
+    </section>
+
+    <!-- MAIN CONTENT -->
+    <main id="main" class="content" style="display:none;">
+
+      <!-- HOME -->
+      <section id="home" class="section active">
+        <div class="card">
+          <div class="row" style="justify-content:space-between; align-items:flex-start;">
+            <div style="font-weight:800;">Online now</div>
+            <button class="plus" id="openAllOnline" title="See all online">＋</button>
+          </div>
+          <div id="topOnline" class="online-stack" aria-label="Top 5 online users (vertical)"></div>
+        </div>
+
+        <div class="card">
+          <div class="search">
+            <input id="searchInput" type="text" placeholder="Search users by name..." />
+          </div>
+          <div id="searchResults" class="list" style="margin-top:10px;"></div>
+        </div>
+      </section>
+
+      <!-- MESSAGES -->
+      <section id="messages" class="section">
+        <div class="card">
+          <div class="row">
+            <div style="font-weight:800;">Your chats</div>
+            <div class="space"></div>
+            <span class="chip" id="chatCount">0 active</span>
+          </div>
+          <div id="chatList" class="list" style="margin-top:8px;"></div>
+        </div>
+      </section>
+
+      <!-- FRIENDS -->
+      <section id="friends" class="section">
+        <div class="card">
+          <div class="row">
+            <div style="font-weight:800;">Your friends</div>
+            <div class="space"></div>
+            <span class="chip" id="friendCount">0 total</span>
+          </div>
+          <div id="friendList" class="list" style="margin-top:8px;"></div>
+        </div>
+      </section>
+
+      <!-- PROFILE -->
+      <section id="profile" class="section">
+        <div class="card">
+          <div class="row" style="align-items:center;">
+            <div id="profileAvatar" class="avatar" style="width:64px;height:64px;font-size:30px;">😍<span class="green-dot hidden" id="meOnlineDot"></span></div>
+            <div>
+              <div class="item-title" id="profileName">Your Name</div>
+              <div class="muted" id="profileEmail">you@gmail.com</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="field"><label>Your display name</label><input id="nameInput" type="text" placeholder="e.g., Aisha" /></div>
+          <div class="field"><label>Your bio</label><input id="bioInput" type="text" placeholder="e.g., Coffee + long walks ☕🌙" /></div>
+          <div style="margin-top:8px; font-weight:800;">Choose emoji avatar</div>
+          <div id="emojiGrid" class="emoji-grid"></div>
+          <div class="row" style="margin-top:10px;">
+            <button id="saveProfileBtn" class="btn">Save profile</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="row"><div style="font-weight:800;">Blocked users</div></div>
+          <div id="blockedList" class="list" style="margin-top:8px;"></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottom" aria-label="Bottom navigation">
+      <button class="nav-btn active" data-target="home"><div class="nav-ico">🏠</div><span>Home</span></button>
+      <button class="nav-btn" data-target="messages"><div class="nav-ico">💬</div><span>Messages</span></button>
+      <button class="nav-btn" data-target="friends"><div class="nav-ico">👥</div><span>Friends</span></button>
+      <button class="nav-btn" data-target="profile"><div class="nav-ico">👤</div><span>Profile</span></button>
+    </nav>
+
+    <!-- CHAT OVERLAY -->
+    <div id="chatOverlay" class="chat" role="dialog" aria-modal="true">
+      <div class="chat-card">
+        <div class="chat-head">
+          <div id="chatAvatar" class="avatar" style="width:44px;height:44px;font-size:22px;"><span class="green-dot" id="chatOnlineDot" style="display:none;"></span></div>
+          <div>
+            <div class="item-title" id="chatName">Chat</div>
+            <div class="muted" id="chatSub">Say hi 💘</div>
+          </div>
+          <div class="space"></div>
+          <button id="blockBtn" class="btn danger" style="padding:8px 12px; border-radius:12px;">Block</button>
+          <button id="closeChat" class="btn ghost" style="padding:8px 12px; border-radius:12px;">Close</button>
+        </div>
+        <div id="chatBody" class="chat-body"></div>
+        <div class="chat-input">
+          <input id="chatInput" type="text" placeholder="Write a message..." />
+          <button id="sendBtn" class="btn" style="width:auto;">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALL ONLINE MODAL -->
+    <div id="allOnlineModal" class="modal">
+      <div class="modal-card">
+        <div class="row"><div class="item-title">All online users</div><div class="space"></div><button id="closeAllOnline" class="btn ghost" style="width:auto;">Close</button></div>
+        <div class="search" style="margin-top:8px;"><input id="allOnlineSearch" type="text" placeholder="Filter by name..." /></div>
+        <div id="allOnlineList" class="list" style="margin-top:10px;"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Firebase v10 (modular) -->
+  <script type="module">
+    // ===== Imports (Firebase v10+) =====
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getDatabase, ref, set, get, update, onValue, onChildAdded, push, serverTimestamp, child, query, orderByChild, equalTo
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    // =============================== //
+    
+    
+const firebaseConfig = {
+  apiKey: "AIzaSyByqVz3qOPCjcffl9LHRq-bHtmYidBR4sU",
+  authDomain: "connectwithlove-29ecc.firebaseapp.com",
+  databaseURL: "https://connectwithlove-29ecc-default-rtdb.firebaseio.com",
+  projectId: "connectwithlove-29ecc",
+  storageBucket: "connectwithlove-29ecc.firebasestorage.app",
+  messagingSenderId: "1014499548586",
+  appId: "1:1014499548586:web:e1f7c5f7c98fdbfefbdfd3"
+};
+
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getDatabase(app);
+
+    // ======= DOM Helpers =======
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => Array.from(document.querySelectorAll(sel));
+    const uidSafe = () => (auth.currentUser ? auth.currentUser.uid : null);
+
+    // ======= Global State =======
+    let currentUser = null;
+    let currentChat = null; // { uid, name, avatar, online }
+    let emojiChoice = "😍";
+
+    const EMOJIS = "🔥 😢 😁 😘 😜 😆 ♥️ 😎 🥸 🤑 🥰 🤡 😍 😙 🤗 🤩 🤪 🥳 🤠 🤬 👻 👹 👺 👽 😻 💋 👀 🧒 👩‍🦱 👨‍🦰 👨‍🦳 🧔 🥷 👮 👳 👷 👲 🕵️‍♀️ 👩‍🎤 👨‍🌾 👩‍🚒 🧟‍♂️ 👸 👼 🙋‍♀️ 🙋‍♂️ 💃 🕺 ❤️‍🩹 🫶 🫦 ❤️‍🔥 🐻 🦊 🐸 🐵 🐒"
+      .split(/\s+/).filter(Boolean);
+
+    // ======= Navigation =======
+    $$(".nav-btn").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        $$(".nav-btn").forEach(b=>b.classList.remove("active"));
+        btn.classList.add("active");
+        const target = btn.dataset.target;
+        $$(".section").forEach(s=>s.classList.remove("active"));
+        $("#"+target).classList.add("active");
+      })
+    });
+
+    // ======= Auth UI =======
+    const authSection = $("#authSection");
+    const main = $("#main");
+    const signOutBtn = $("#signOutBtn");
+    const authError = $("#authError");
+    const loginForm = $("#loginForm");
+    const signupForm = $("#signupForm");
+    const tabLogin = $("#tabLogin");
+    const tabSignup = $("#tabSignup");
+
+    tabLogin.onclick = ()=>{ tabLogin.classList.add("active"); tabSignup.classList.remove("active"); loginForm.classList.remove("hidden"); signupForm.classList.add("hidden"); authError.textContent=""; };
+    tabSignup.onclick = ()=>{ tabSignup.classList.add("active"); tabLogin.classList.remove("active"); signupForm.classList.remove("hidden"); loginForm.classList.add("hidden"); authError.textContent=""; };
+
+    $("#loginBtn").onclick = async ()=>{
+      authError.textContent="";
+      try{
+        await signInWithEmailAndPassword(auth, $("#loginEmail").value.trim(), $("#loginPass").value.trim());
+      }catch(e){ authError.textContent=e.message; }
+    };
+    $("#signupBtn").onclick = async ()=>{
+      authError.textContent="";
+      try{
+        const cred = await createUserWithEmailAndPassword(auth, $("#signEmail").value.trim(), $("#signPass").value.trim());
+        // Initialize user record
+        const u = cred.user;
+        const base = {
+          uid: u.uid,
+          email: u.email,
+          name: u.email.split("@")[0],
+          bio: "New here 💖",
+          avatar: "😍",
+          online: true,
+          createdAt: Date.now(),
+          lastSeen: Date.now()
+        };
+        await set(ref(db, `users/${u.uid}`), base);
+        // Also create structures for friends/blocks
+        await set(ref(db, `friends/${u.uid}`), { _init: true });
+        await set(ref(db, `blocks/${u.uid}`), { _init: true });
+      }catch(e){ authError.textContent=e.message; }
+    };
+    signOutBtn.onclick = async ()=>{
+      // Mark offline immediately
+      const me = uidSafe();
+      if(me){ await update(ref(db, `users/${me}`), { online:false, lastSeen: Date.now() }); }
+      await signOut(auth);
+    };
+
+    // ======= Presence (online/offline) =======
+    async function goOnline(uid){
+      await update(ref(db, `users/${uid}`), { online: true, lastSeen: Date.now() });
+      // Set an onDisconnect flag to flip to offline
+      import("https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js").then(async ({ onDisconnect })=>{
+        try{
+          const od = onDisconnect(ref(db, `users/${uid}`));
+          await od.update({ online:false, lastSeen: Date.now() });
+        }catch(_){}
+      });
+    }
+
+    // ======= User bootstrap =======
+    onAuthStateChanged(auth, async (user)=>{
+      currentUser = user;
+      if(user){
+        authSection.style.display="none";
+        main.style.display="flex";
+        signOutBtn.style.display="inline-flex";
+        $("#profileEmail").textContent = user.email || "";
+        $("#meOnlineDot").classList.remove("hidden");
+        await goOnline(user.uid);
+        // Fetch my profile
+        const snap = await get(ref(db, `users/${user.uid}`));
+        const me = snap.exists() ? snap.val() : null;
+        if(me){
+          $("#profileName").textContent = me.name || "";
+          $("#nameInput").value = me.name || "";
+          $("#bioInput").value = me.bio || "";
+          emojiChoice = me.avatar || "😍";
+          $("#profileAvatar").textContent = emojiChoice;
+        }
+        primeEmojiGrid();
+        observeTopOnline();
+        observeAllOnlineIntoModal();
+        observeMyChats();
+        observeMyFriends();
+        observeBlocked();
+      }else{
+        main.style.display="none";
+        authSection.style.display="flex";
+        signOutBtn.style.display="none";
+        $("#chatList").innerHTML = "";
+        $("#friendList").innerHTML = "";
+        $("#blockedList").innerHTML = "";
+        $("#topOnline").innerHTML = "";
+      }
+    });
+
+    // ======= Emoji grid =======
+    function primeEmojiGrid(){
+      const grid = $("#emojiGrid");
+      grid.innerHTML = "";
+      EMOJIS.forEach(e=>{
+        const b = document.createElement("button");
+        b.className = "emoji-btn" + (e===emojiChoice ? " active": "");
+        b.textContent = e;
+        b.onclick = ()=>{
+          emojiChoice = e;
+          $$(".emoji-btn").forEach(x=>x.classList.remove("active"));
+          b.classList.add("active");
+          $("#profileAvatar").textContent = emojiChoice;
+        };
+        grid.appendChild(b);
+      });
+    }
+
+    // ======= Save profile =======
+    $("#saveProfileBtn").onclick = async ()=>{
+      const uid = uidSafe(); if(!uid) return;
+      const name = $("#nameInput").value.trim().slice(0,40) || "Romantic";
+      const bio  = $("#bioInput").value.trim().slice(0,120) || "Love is in the air 💘";
+      await update(ref(db, `users/${uid}`), { name, bio, avatar: emojiChoice });
+      $("#profileName").textContent = name;
+    };
+
+    // ======= Build user card =======
+    function userRow(u, opts={}){
+      const row = document.createElement("div");
+      row.className = "item";
+      const av = document.createElement("div");
+      av.className = "avatar";
+      av.textContent = u.avatar || "😍";
+      if(u.online){ const dot = document.createElement("span"); dot.className="green-dot"; av.appendChild(dot); }
+      const info = document.createElement("div");
+      const t = document.createElement("div"); t.className="item-title"; t.textContent = u.name || u.email;
+      const s = document.createElement("div"); s.className="muted"; s.textContent = u.bio || u.email || "";
+      info.append(t,s);
+      const actions = document.createElement("div"); actions.className="space";
+      const btns = document.createElement("div"); btns.className="row";
+      // Add friend
+      const addF = document.createElement("button"); addF.className="btn ghost"; addF.style.width="auto"; addF.textContent="Add friend";
+      addF.onclick = ()=> addFriend(u.uid);
+      // Chat button
+      const msg = document.createElement("button"); msg.className="btn"; msg.style.width="auto"; msg.textContent="Message";
+      msg.onclick = ()=> openChatWith(u.uid, u);
+      // Optional extra buttons
+      btns.append(addF, msg);
+      row.append(av, info, actions, btns);
+      return row;
+    }
+
+    // ======= Top 5 online (vertical) =======
+    function observeTopOnline(){
+      const top = $("#topOnline");
+      onValue(ref(db, "users"), (snap)=>{
+        const me = uidSafe();
+        const users = [];
+        snap.forEach(s=>{
+          const u = s.val();
+          if(u && u.uid !== me && u.online) users.push(u);
+        });
+        users.sort((a,b)=> (b.lastSeen||0)-(a.lastSeen||0));
+        const first5 = users.slice(0,5);
+        top.innerHTML = "";
+        first5.forEach(u=>{
+          const av = document.createElement("div");
+          av.className = "avatar";
+          av.title = u.name || "";
+          av.textContent = u.avatar || "😍";
+          const dot = document.createElement("span"); dot.className="green-dot"; av.appendChild(dot);
+          av.onclick = ()=> openChatWith(u.uid, u);
+          const row = document.createElement("div");
+          row.className = "online-row";
+          row.appendChild(av);
+          const label = document.createElement("div");
+          label.innerHTML = `<div class="item-title">${u.name||""}</div><div class="muted">${u.bio||""}</div>`;
+          row.appendChild(label);
+          top.appendChild(row);
+        });
+      });
+    }
+
+    // ======= All online modal + search =======
+    const allOnlineModal = $("#allOnlineModal");
+    $("#openAllOnline").onclick = ()=> allOnlineModal.classList.add("active");
+    $("#closeAllOnline").onclick = ()=> allOnlineModal.classList.remove("active");
+    $("#allOnlineSearch").addEventListener("input", filterAllOnline);
+
+    function observeAllOnlineIntoModal(){
+      onValue(ref(db, "users"), (snap)=>{
+        const list = $("#allOnlineList");
+        const me = uidSafe();
+        const rows = [];
+        snap.forEach(s=>{
+          const u = s.val(); if(!u || u.uid===me) return;
+          if(u.online){ rows.push(userRow(u)); }
+        });
+        list.innerHTML = "";
+        rows.forEach(r=> list.appendChild(r));
+        filterAllOnline();
+      });
+    }
+    function filterAllOnline(){
+      const q = $("#allOnlineSearch").value.trim().toLowerCase();
+      $$("#allOnlineList .item").forEach(item=>{
+        const name = item.querySelector(".item-title")?.textContent.toLowerCase() || "";
+        item.style.display = name.includes(q) ? "" : "none";
+      });
+    }
+
+    // ======= People search (by name) =======
+    $("#searchInput").addEventListener("input", async (e)=>{
+      const q = e.target.value.trim().toLowerCase();
+      const list = $("#searchResults");
+      if(q.length===0){ list.innerHTML=""; return; }
+      const snap = await get(ref(db, "users"));
+      const me = uidSafe();
+      const arr = [];
+      snap.forEach(s=>{
+        const u = s.val();
+        if(!u || u.uid===me) return;
+        if((u.name||"").toLowerCase().includes(q)) arr.push(u);
+      });
+      list.innerHTML = "";
+      arr.slice(0,20).forEach(u=> list.appendChild(userRow(u)));
+    });
+
+    // ======= Friends =======
+    async function addFriend(otherUid){
+      const me = uidSafe(); if(!me || !otherUid) return;
+      await update(ref(db, `friends/${me}/${otherUid}`), { since: Date.now() });
+      await update(ref(db, `friends/${otherUid}/${me}`), { since: Date.now() }); // mutual
+    }
+    function observeMyFriends(){
+      const me = uidSafe(); if(!me) return;
+      onValue(ref(db, `friends/${me}`), async (fSnap)=>{
+        const list = $("#friendList"); list.innerHTML="";
+        let count = 0;
+        const usersSnap = await get(ref(db, "users"));
+        const users = usersSnap.exists() ? usersSnap.val() : {};
+        fSnap.forEach(s=>{
+          const k = s.key; if(k==="_init") return;
+          const u = users[k]; if(!u) return;
+          count++;
+          const row = userRow(u);
+          list.appendChild(row);
+        });
+        $("#friendCount").textContent = `${count} total`;
+      });
+    }
+
+    // ======= Block/Unblock =======
+    async function blockUser(otherUid){
+      const me = uidSafe(); if(!me || !otherUid) return;
+      await set(ref(db, `blocks/${me}/${otherUid}`), true);
+      closeChat();
+    }
+    async function unblockUser(otherUid){
+      const me = uidSafe(); if(!me || !otherUid) return;
+      await set(ref(db, `blocks/${me}/${otherUid}`), null);
+    }
+    function observeBlocked(){
+      const me = uidSafe(); if(!me) return;
+      onValue(ref(db, `blocks/${me}`), async (snap)=>{
+        const list = $("#blockedList"); list.innerHTML="";
+        const usersSnap = await get(ref(db, "users"));
+        const users = usersSnap.exists()? usersSnap.val() : {};
+        snap.forEach(s=>{
+          const k = s.key; if(k==="_init") return;
+          const u = users[k]; if(!u) return;
+          const row = document.createElement("div"); row.className="item";
+          const av = document.createElement("div"); av.className="avatar"; av.textContent = u.avatar || "😍";
+          const info = document.createElement("div");
+          const t = document.createElement("div"); t.className="item-title"; t.textContent = u.name || "";
+          const m = document.createElement("div"); m.className="muted"; m.textContent = "Blocked";
+          info.append(t,m);
+          const space = document.createElement("div"); space.className="space";
+          const btn = document.createElement("button"); btn.className="btn"; btn.style.width="auto"; btn.textContent="Unblock";
+          btn.onclick = ()=> unblockUser(k);
+          row.append(av, info, space, btn);
+          list.appendChild(row);
+        });
+      });
+    }
+    async function isBlocked(me, other){
+      const bs = await get(ref(db, `blocks/${me}/${other}`)); return bs.exists();
+    }
+
+    // ======= Messages / Chats =======
+    function chatIdFor(a,b){ return [a,b].sort().join("_"); }
+    function observeMyChats(){
+      const me = uidSafe(); if(!me) return;
+      onValue(ref(db, `userChats/${me}`), async (snap)=>{
+        const list = $("#chatList"); list.innerHTML = "";
+        const usersSnap = await get(ref(db, "users"));
+        const users = usersSnap.exists()? usersSnap.val() : {};
+        let count = 0;
+        snap.forEach(s=>{
+          const cid = s.key; const meta = s.val();
+          if(!cid || !meta || !meta.otherUid) return;
+          const u = users[meta.otherUid]; if(!u) return;
+          count++;
+          const row = document.createElement("div"); row.className="item";
+          const av = document.createElement("div"); av.className="avatar"; av.textContent = u.avatar || "😍";
+          if(u.online){ const dot = document.createElement("span"); dot.className="green-dot"; av.appendChild(dot); }
+          const info = document.createElement("div");
+          const t = document.createElement("div"); t.className="item-title"; t.textContent = u.name || "";
+          const m = document.createElement("div"); m.className="muted"; m.textContent = meta.lastText ? meta.lastText.slice(0,60) : "Say hi 💌";
+          info.append(t,m);
+          const space = document.createElement("div"); space.className="space";
+          const btn = document.createElement("button"); btn.className="btn"; btn.style.width="auto"; btn.textContent="Open";
+          btn.onclick = ()=> openChatWith(u.uid, u);
+          row.append(av, info, space, btn);
+          list.appendChild(row);
+        });
+        $("#chatCount").textContent = `${count} active`;
+      });
+    }
+
+    // Open chat
+    const chatOverlay = $("#chatOverlay");
+    const chatBody = $("#chatBody");
+    const chatInput = $("#chatInput");
+    const chatName  = $("#chatName");
+    const chatSub   = $("#chatSub");
+    const chatAvatar= $("#chatAvatar");
+    const chatOnlineDot = $("#chatOnlineDot");
+    const sendBtn   = $("#sendBtn");
+    const blockBtn  = $("#blockBtn");
+    $("#closeChat").onclick = closeChat;
+
+    let chatOffUnsub = null;
+    async function openChatWith(otherUid, otherUserData){
+      const me = uidSafe(); if(!me) return;
+      if(await isBlocked(me, otherUid)){ alert("You have blocked this user. Unblock from Profile → Blocked users."); return; }
+      if(await isBlocked(otherUid, me)){ alert("This user has blocked you."); return; }
+
+      // hydrate other if needed
+      let other = otherUserData;
+      if(!other){
+        const s = await get(ref(db, `users/${otherUid}`)); other = s.exists()? s.val(): { uid: otherUid, name:"Someone", avatar:"😶" };
+      }
+      currentChat = { uid: otherUid, name: other.name||"Someone", avatar: other.avatar||"😍", online: !!other.online };
+      chatName.textContent = currentChat.name;
+      chatAvatar.textContent = currentChat.avatar;
+      chatOnlineDot.style.display = other.online ? "block":"none";
+      chatSub.textContent = "Romantic chat ✨";
+      chatOverlay.classList.add("active");
+      chatBody.innerHTML="";
+
+      // Start listening
+      const cid = chatIdFor(me, otherUid);
+      if(chatOffUnsub) chatOffUnsub(); // remove old
+      chatOffUnsub = onValue(ref(db, `chats/${cid}/messages`), (snap)=>{
+        chatBody.innerHTML = "";
+        const msgs = [];
+        snap.forEach(s=> msgs.push({ key:s.key, ...s.val() }));
+        msgs.sort((a,b)=> (a.ts||0) - (b.ts||0));
+        msgs.forEach(m=>{
+          const b = document.createElement("div");
+          b.className = "bubble " + (m.from===me ? "me":"");
+          b.textContent = m.text;
+          chatBody.appendChild(b);
+        });
+        chatBody.scrollTop = chatBody.scrollHeight;
+      });
+
+      // Seed userChats meta for both sides
+      const meta = { otherUid: otherUid, lastText: "", ts: Date.now() };
+      await update(ref(db, `userChats/${me}/${cid}`), meta);
+      await update(ref(db, `userChats/${otherUid}/${cid}`), { otherUid: me, lastText:"", ts: Date.now() });
+
+      // Block button wiring
+      blockBtn.onclick = ()=> blockUser(otherUid);
+    }
+
+    function closeChat(){
+      chatOverlay.classList.remove("active");
+      if(chatOffUnsub) { chatOffUnsub = null; }
+      currentChat = null;
+    }
+
+    async function sendMessage(){
+      const me = uidSafe(); if(!me || !currentChat) return;
+      const text = chatInput.value.trim(); if(!text) return;
+      const cid = chatIdFor(me, currentChat.uid);
+      const msgRef = push(ref(db, `chats/${cid}/messages`));
+      await set(msgRef, { from: me, to: currentChat.uid, text, ts: Date.now() });
+      await update(ref(db, `userChats/${me}/${cid}`), { otherUid: currentChat.uid, lastText: text, ts: Date.now() });
+      await update(ref(db, `userChats/${currentChat.uid}/${cid}`), { otherUid: me, lastText: text, ts: Date.now() });
+      chatInput.value = "";
+    }
+    sendBtn.onclick = sendMessage;
+    chatInput.addEventListener("keydown", (e)=> { if(e.key==="Enter") sendMessage(); });
+
+    // ======= Small utilities =======
+    // Keep my online status fresh every 25s
+    setInterval(async ()=>{
+      const me = uidSafe(); if(me) await update(ref(db, `users/${me}`), { online:true, lastSeen: Date.now() });
+    }, 25000);
+
+    // Accessibility: close modals by background click
+    allOnlineModal.addEventListener("click", (e)=>{ if(e.target===allOnlineModal) allOnlineModal.classList.remove("active"); });
+    chatOverlay.addEventListener("click", (e)=>{ if(e.target===chatOverlay) closeChat(); });
+
+  </script>
+</body>
+</html>
